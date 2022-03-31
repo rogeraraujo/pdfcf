@@ -1,0 +1,71 @@
+
+<project name="PDF Compression Frontend" default="package-dist" basedir=".">
+  <description>
+    Ant script to package the distribution files of PDF Compression Frontend.
+    Execute this script after running "mvn clean package".
+  </description>
+
+  <!-- Script variables -->
+  <property name="build-dir" location="target"/>
+  <property name="build-lib-dir" location="target/lib"/>
+  <property name="build-config-dir" location="config"/>
+
+  <property name="dist-dir" location="dist"/>
+  <property name="dist-lib-dir" location="dist/lib"/>
+  <property name="dist-config-dir" location="dist/config"/>
+
+  <property name="exec-scripts-dir" location="exec-scripts"/>
+
+  <property name="launch4j-dir" location="launch4j"/>
+  
+  <target name="clean-dist" description="Clean distribution directory">
+    <echo>Deleting distribution directory ${dist-dir}...</echo>
+    <delete dir="${dist-dir}"/>
+
+    <echo>Done.</echo>
+  </target>
+
+  <target name="package-dist" depends="clean-dist"
+      description="Package distribution directory">
+    <!-- Creates the distribution directory -->
+    <echo>Creating distribution directory ${dist-dir}...</echo>
+    <mkdir dir="${dist-dir}"/>
+    <mkdir dir="${dist-lib-dir}"/>
+
+    <!-- Copies distribution files -->
+    <echo>Copying main JAR file...</echo>
+    <copy todir="${dist-dir}">
+      <fileset dir="${build-dir}" includes="*.jar"/>
+    </copy>
+
+    <echo>Copying JAR libraries...</echo>
+    <copy todir="${dist-lib-dir}">
+      <fileset dir="${build-lib-dir}" includes="*.jar"/>
+    </copy>
+
+    <echo>Copying configuration files...</echo>
+    <copy todir="${dist-config-dir}">
+      <fileset dir="${build-config-dir}"/>
+    </copy>
+
+    <echo>Copying execution scripts...</echo>
+    <copy todir="${dist-dir}">
+      <fileset dir="${exec-scripts-dir}"/>
+    </copy>
+
+    <setpermissions nonposixmode="pass" failonerror="false"
+          permissions="OWNER_READ,OWNER_WRITE,OWNER_EXECUTE,OTHERS_READ,OTHERS_EXECUTE,GROUP_READ,GROUP_EXECUTE">
+      <file file="${dist-dir}/pdfcf.sh"/>
+    </setpermissions>
+
+    <echo>Copying Windows executable...</echo>
+    <copy todir="${dist-dir}">
+      <fileset dir="${launch4j-dir}">
+         <include name="pdfcf.exe"/>
+         <include name="pdfcf.l4j.ini"/>
+      </fileset>
+    </copy>
+    
+    <echo>Done.</echo>
+  </target>
+</project>

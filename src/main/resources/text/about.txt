@@ -1,0 +1,11 @@
+PDF Compression Frontend v1.0
+A Ghostscript frontend to compress PDF files
+
+Copyright (c) 2022, Roger Araújo
+https://github.com/rogeraraujo/pdfcf
+
+This software is licensed under the Apache License 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+This software uses icons from the Silk icon set by Mark James:
+http://www.famfamfam.com/lab/icons/silk/
