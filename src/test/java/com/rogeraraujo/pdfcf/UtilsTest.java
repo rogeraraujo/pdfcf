@@ -117,48 +117,94 @@ class UtilsTest {
 
     @Test
     void formatFileSizeTest() {
-        assertEquals(Utils.formatFileSize(0, null), "0 bytes");
-        assertEquals(Utils.formatFileSize(1, null), "1 byte");
-        assertEquals(Utils.formatFileSize(-1, null), "-1 byte");
-        assertEquals(Utils.formatFileSize(512, null), "512 bytes");
-        assertEquals(Utils.formatFileSize(-512, null), "-512 bytes");
+        assertEquals(Utils.formatFileSize(0, null),String.format(
+            "%d %s", 0, Utils.BYTES_SUFFIX));
+        assertEquals(Utils.formatFileSize(1, null), String.format(
+            "%d %s", 1, Utils.BYTE_SUFFIX));
+        assertEquals(Utils.formatFileSize(-1, null), String.format(
+            "%d %s", -1, Utils.BYTE_SUFFIX));
+        assertEquals(Utils.formatFileSize(512, null), String.format(
+            "%d %s", 512, Utils.BYTES_SUFFIX));
+        assertEquals(Utils.formatFileSize(-512, null), String.format(
+            "%d %s", -512, Utils.BYTES_SUFFIX));
 
         DecimalFormat decFormat = new DecimalFormat("0.##");
 
         assertEquals(Utils.formatFileSize(Utils.ONE_KILOBYTE, null),
-            "1 " + Utils.KILOBYTE_SUFFIX);
+            String.format("%d %s", 1, Utils.KILOBYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_KILOBYTE, null),
-            "-1 " + Utils.KILOBYTE_SUFFIX);
+            String.format("%d %s", -1, Utils.KILOBYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(Utils.ONE_KILOBYTE * 3 / 2, decFormat),
-            decFormat.format(1.5d) + " " + Utils.KILOBYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(1.5d), Utils.KILOBYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_KILOBYTE * 3 / 2, decFormat),
-            "-" + decFormat.format(1.5d) + " " + Utils.KILOBYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(-1.5d), Utils.KILOBYTE_SUFFIX));
 
         assertEquals(Utils.formatFileSize(Utils.ONE_MEGABYTE, null),
-            "1 " + Utils.MEGABYTE_SUFFIX);
+            String.format("%d %s", 1, Utils.MEGABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_MEGABYTE, null),
-            "-1 " + Utils.MEGABYTE_SUFFIX);
+            String.format("%d %s", -1, Utils.MEGABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(Utils.ONE_MEGABYTE * 3 / 2, decFormat),
-            decFormat.format(1.5d) + " " + Utils.MEGABYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(1.5d), Utils.MEGABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_MEGABYTE * 3 / 2, decFormat),
-            "-" + decFormat.format(1.5d) + " " + Utils.MEGABYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(-1.5d), Utils.MEGABYTE_SUFFIX));
 
         assertEquals(Utils.formatFileSize(Utils.ONE_GIGABYTE, null),
-            "1 " + Utils.GIGABYTE_SUFFIX);
+            String.format("%d %s", 1, Utils.GIGABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_GIGABYTE, null),
-            "-1 " + Utils.GIGABYTE_SUFFIX);
+            String.format("%d %s", -1, Utils.GIGABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(Utils.ONE_GIGABYTE * 3 / 2, decFormat),
-            decFormat.format(1.5d) + " " + Utils.GIGABYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(1.5d), Utils.GIGABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_GIGABYTE * 3 / 2, decFormat),
-            "-" + decFormat.format(1.5d) + " " + Utils.GIGABYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(-1.5d), Utils.GIGABYTE_SUFFIX));
 
         assertEquals(Utils.formatFileSize(Utils.ONE_TERABYTE, null),
-            "1 " + Utils.TERABYTE_SUFFIX);
+            String.format("%d %s", 1, Utils.TERABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_TERABYTE, null),
-            "-1 " + Utils.TERABYTE_SUFFIX);
+            String.format("%d %s", -1, Utils.TERABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(Utils.ONE_TERABYTE * 3 / 2, decFormat),
-            decFormat.format(1.5d) + " " + Utils.TERABYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(1.5d), Utils.TERABYTE_SUFFIX));
         assertEquals(Utils.formatFileSize(-Utils.ONE_TERABYTE * 3 / 2, decFormat),
-            "-" + decFormat.format(1.5d) + " " + Utils.TERABYTE_SUFFIX);
+            String.format("%s %s", decFormat.format(-1.5d), Utils.TERABYTE_SUFFIX));
+    }
+
+    @Test
+    void formatElapsedTimeSizeTest() {
+        assertEquals(Utils.formatElapsedTime(0), String.format(
+            "%d%s", 0, Utils.SECONDS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(59), String.format(
+            "%d%s", 59, Utils.SECONDS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-59), String.format(
+            "%d%s", -59, Utils.SECONDS_SUFFIX));
+
+        assertEquals(Utils.formatElapsedTime(60), String.format(
+            "%d%s", 1, Utils.MINUTES_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-60), String.format(
+            "%d%s", -1, Utils.MINUTES_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(3599), String.format(
+            "%d%s%d%s", 59, Utils.MINUTES_SUFFIX, 59, Utils.SECONDS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-3599), String.format(
+            "%d%s%d%s", -59, Utils.MINUTES_SUFFIX, 59, Utils.SECONDS_SUFFIX));
+
+        assertEquals(Utils.formatElapsedTime(3600), String.format(
+            "%d%s", 1, Utils.HOURS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-3600), String.format(
+            "%d%s", -1, Utils.HOURS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(86399), String.format(
+            "%d%s%d%s%d%s", 23, Utils.HOURS_SUFFIX, 59, Utils.MINUTES_SUFFIX,
+            59, Utils.SECONDS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-86399), String.format(
+            "%d%s%d%s%d%s", -23, Utils.HOURS_SUFFIX, 59, Utils.MINUTES_SUFFIX,
+            59, Utils.SECONDS_SUFFIX));
+
+        assertEquals(Utils.formatElapsedTime(86400), String.format(
+            "%d%s", 1, Utils.DAYS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-86400), String.format(
+            "%d%s", -1, Utils.DAYS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(86400 + 86399), String.format(
+            "%d%s%d%s%d%s%d%s", 1, Utils.DAYS_SUFFIX, 23, Utils.HOURS_SUFFIX, 59,
+            Utils.MINUTES_SUFFIX, 59, Utils.SECONDS_SUFFIX));
+        assertEquals(Utils.formatElapsedTime(-(86400 + 86399)), String.format(
+            "%d%s%d%s%d%s%d%s", -1, Utils.DAYS_SUFFIX, 23, Utils.HOURS_SUFFIX, 59,
+            Utils.MINUTES_SUFFIX, 59, Utils.SECONDS_SUFFIX));
     }
 }

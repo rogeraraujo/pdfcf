@@ -17,10 +17,7 @@
 package com.rogeraraujo.pdfcf.gui;
 
 import com.rogeraraujo.pdfcf.Utils;
-import com.rogeraraujo.pdfcf.components.AllFilesFilter;
-import com.rogeraraujo.pdfcf.components.ComboBoxItem;
-import com.rogeraraujo.pdfcf.components.CustomListCellRenderer;
-import com.rogeraraujo.pdfcf.components.LimitedDocument;
+import com.rogeraraujo.pdfcf.components.*;
 import com.rogeraraujo.pdfcf.gs.ConversionQuality;
 import com.rogeraraujo.pdfcf.gs.GsUtils;
 import com.rogeraraujo.pdfcf.gs.PdfCompatibilityLevel;
@@ -32,7 +29,10 @@ import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -750,7 +750,7 @@ public class MainWindow extends JFrame {
             return;
         }
 
-        // Prepares execution
+        // Prepares process execution
         String additionalGsParameters = jtfAdditionalGsParameters.getText();
 
         List<String> commands = new ArrayList<>();
@@ -774,7 +774,7 @@ public class MainWindow extends JFrame {
 
         commands.add(inputFilePath);
 
-        // Outputs full command to compression log
+        // Outputs full execution command to compression log
         StringBuilder fullCommand = new StringBuilder();
 
         for (int i = 0, len = commands.size(); i < len; ++i) {
@@ -788,50 +788,75 @@ public class MainWindow extends JFrame {
         jtaCompressionLog.append(
             "Executing Ghostscript:\n" + fullCommand + "\n\n");
 
-        // Actual execution
+        // Actual process execution
         ProcessExecutionDialog executionDlg = null;
-        BufferedReader outputReader = null;
-        BufferedReader errorReader = null;
+        List<String> initialInputStreamLines = null;
+        List<String> initialErrorStreamLines = null;
+        BufferedReader inputStreamReader = null;
+        BufferedReader errorStreamReader = null;
         Integer exitValue = null;
 
         try {
+            // Sets up the process builder
             ProcessBuilder procBuilder = new ProcessBuilder(commands);
+            procBuilder.redirectErrorStream(true);
 
             if (gsExecutableParent != null) {
                 procBuilder.directory(gsExecutable.getParentFile());
             }
 
+            // Creates and shows a modal dialog to execute the process.
+            // The process is run when the dialog gets shown, and the dialog
+            // closes automatically when the process ends
             executionDlg = ProcessExecutionDialog.createInstance(
                 this, true, 0, 0, procBuilder);
             executionDlg.setVisible(true);
 
-            outputReader = executionDlg.getProcessOutputReader();
-            errorReader = executionDlg.getProcessErrorReader();
-            exitValue = executionDlg.getProcessExitValue();
+            // Reads process execution info
+            ProcessExecutionInfo processExecutionInfo =
+                executionDlg.getProcessExecutionInfo();
 
+            if (processExecutionInfo != null) {
+                initialInputStreamLines =
+                    processExecutionInfo.getInitialInputStreamLines();
+                initialErrorStreamLines =
+                    processExecutionInfo.getInitialErrorStreamLines();
+                inputStreamReader = processExecutionInfo.getInputStreamReader();
+                errorStreamReader = processExecutionInfo.getErrorStreamReader();
+                exitValue = processExecutionInfo.getExitValue();
+            }
+
+            // Throws any stored exceptions if need be
             if (executionDlg.getThreadExecutionException() != null) {
                 throw executionDlg.getThreadExecutionException();
             }
 
-            if (executionDlg.getProcessException() != null) {
-                throw executionDlg.getProcessException();
+            if ((processExecutionInfo != null) &&
+                (processExecutionInfo.getExecutionException() != null)) {
+                throw processExecutionInfo.getExecutionException();
             }
         } catch (Exception ex) {
             showExceptionDialog("Error running Ghostscript", ex);
         } finally {
-            // Processes output stream
-            if (outputReader != null) {
+            // Processes input stream
+            boolean emittedLines = false;
+
+            if ((initialInputStreamLines != null) &&
+                (initialInputStreamLines.size() > 0)) {
+                emittedLines = true;
+
+                for (String line : initialInputStreamLines) {
+                    jtaCompressionLog.append(line + "\n");
+                }
+            }
+
+            if (inputStreamReader != null) {
                 try {
                     String line;
-                    boolean emittedLines = false;
 
-                    while ((line = outputReader.readLine()) != null) {
+                    while ((line = inputStreamReader.readLine()) != null) {
                         jtaCompressionLog.append(line + "\n");
                         emittedLines = true;
-                    }
-
-                    if (emittedLines) {
-                        jtaCompressionLog.append("\n");
                     }
                 } catch (Exception ex) {
                     showExceptionDialog(
@@ -839,19 +864,29 @@ public class MainWindow extends JFrame {
                 }
             }
 
+            if (emittedLines) {
+                jtaCompressionLog.append("\n");
+            }
+
             // Processes error stream
-            if (errorReader != null) {
+            emittedLines = false;
+
+            if ((initialErrorStreamLines != null) &&
+                (initialErrorStreamLines.size() > 0)) {
+                emittedLines = true;
+
+                for (String line : initialErrorStreamLines) {
+                    jtaCompressionLog.append(line + "\n");
+                }
+            }
+
+            if (errorStreamReader != null) {
                 try {
                     String line;
-                    boolean emittedLines = false;
 
-                    while ((line = errorReader.readLine()) != null) {
+                    while ((line = errorStreamReader.readLine()) != null) {
                         jtaCompressionLog.append(line + "\n");
                         emittedLines = true;
-                    }
-
-                    if (emittedLines) {
-                        jtaCompressionLog.append("\n");
                     }
                 } catch (Exception ex) {
                     showExceptionDialog(
@@ -859,25 +894,28 @@ public class MainWindow extends JFrame {
                 }
             }
 
+            if (emittedLines) {
+                jtaCompressionLog.append("\n");
+            }
+
             // Frees resources
             if (executionDlg != null) {
                 executionDlg.dispose();
             }
 
-            if (outputReader != null) {
-                try { outputReader.close(); }
+            if (inputStreamReader != null) {
+                try { inputStreamReader.close(); }
                 catch (Exception ignored) { }
             }
 
-            if (errorReader != null) {
-                try { errorReader.close(); }
+            if (errorStreamReader != null) {
+                try { errorStreamReader.close(); }
                 catch (Exception ignored) { }
             }
         }
 
         // Processes exit value
-        jtaCompressionLog.append(
-            "Ghostscript exit value: " +
+        jtaCompressionLog.append("Ghostscript exit value: " +
             ((exitValue != null) ? exitValue.toString() : "(unavailable)") +
             "\n");
 
@@ -896,10 +934,8 @@ public class MainWindow extends JFrame {
                 String message;
 
                 if (sizeRatio == 1.0d) {
-                    message =
-                        "The input and output files have the same size, " +
-                        Utils.formatFileSize(outputFileSize, decFormat2d) +
-                        ".";
+                    message = "The input and output files have the same size, " +
+                        Utils.formatFileSize(outputFileSize, decFormat2d) + ".";
                 }
                 else {
                     if (sizeRatio < 1.0d) {

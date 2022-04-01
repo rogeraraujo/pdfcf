@@ -42,6 +42,15 @@ public class Utils {
     public static final String GIGABYTE_SUFFIX = "GB";
     public static final String TERABYTE_SUFFIX = "TB";
 
+    public static final int SECONDS_PER_MINUTE = 60;
+    public static final int SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
+    public static final int SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
+
+    public static final String SECONDS_SUFFIX = "s";
+    public static final String MINUTES_SUFFIX = "m";
+    public static final String HOURS_SUFFIX = "h";
+    public static final String DAYS_SUFFIX = "d";
+
     /**
      * Checks whether a String is empty. Null Strings are considered empty.
      *
@@ -204,11 +213,15 @@ public class Utils {
     }
 
     /**
-     * FIXME Document this
+     * Formats a file size according to byte units -- bytes, kilobytes,
+     * megabytes, gigabytes, and terabytes.
      *
-     * @param sizeInBytes
-     * @param decFormat
-     * @return
+     * @param sizeInBytes File size to format
+     * @param decFormat DecimalFormat instance used to format fractional
+     *                  values. If the caller supplies a null value, this
+     *                  method uses a default format
+     *
+     * @return The formatted file size
      */
     public static String formatFileSize(
             long sizeInBytes, DecimalFormat decFormat) {
@@ -269,5 +282,51 @@ public class Utils {
 
         return decFormat.format(
             sizeInBytes / (double) ONE_TERABYTE) + " " + TERABYTE_SUFFIX;
+    }
+
+    /**
+     * Formats an elapsed time according to time units -- seconds, minutes,
+     * hours and days.
+     *
+     * @param timeInSeconds Elapsed time to format
+     *
+     * @return The formatted elapsed time
+     */
+    public static String formatElapsedTime(long timeInSeconds) {
+        if (timeInSeconds == 0) {
+            return 0 + SECONDS_SUFFIX;
+        }
+
+        String sign = (timeInSeconds >= 0) ? "" : "-";
+        long remainingSeconds = Math.abs(timeInSeconds);
+
+        long days = remainingSeconds / SECONDS_PER_DAY;
+        remainingSeconds = remainingSeconds - (days * SECONDS_PER_DAY);
+
+        long hours = remainingSeconds / SECONDS_PER_HOUR;
+        remainingSeconds = remainingSeconds - (hours * SECONDS_PER_HOUR);
+
+        long minutes = remainingSeconds / SECONDS_PER_MINUTE;
+        remainingSeconds = remainingSeconds - (minutes * SECONDS_PER_MINUTE);
+
+        StringBuilder result = new StringBuilder(sign);
+
+        if (days > 0) {
+            result.append(days).append(DAYS_SUFFIX);
+        }
+
+        if (hours > 0) {
+            result.append(hours).append(HOURS_SUFFIX);
+        }
+
+        if (minutes > 0) {
+            result.append(minutes).append(MINUTES_SUFFIX);
+        }
+
+        if (remainingSeconds > 0) {
+            result.append(remainingSeconds).append(SECONDS_SUFFIX);
+        }
+
+        return result.toString();
     }
 }

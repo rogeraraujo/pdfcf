@@ -16,6 +16,8 @@
 
 package com.rogeraraujo.pdfcf.gui;
 
+import com.rogeraraujo.pdfcf.Utils;
+import com.rogeraraujo.pdfcf.components.ProcessExecutionInfo;
 import com.rogeraraujo.pdfcf.components.ProcessExecutionRunnable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +28,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
 
 /**
  * A JDialog capable of executing an external process in a separate thread,
@@ -50,16 +51,13 @@ public class ProcessExecutionDialog extends JDialog
     private Process process = null;
 
     @Getter
-    private BufferedReader processOutputReader = null;
+    private ProcessExecutionInfo processExecutionInfo;
 
-    @Getter
-    private BufferedReader processErrorReader = null;
+    private JLabel lblElapsedTime;
 
-    @Getter
-    private Integer processExitValue = null;
+    private Timer timer;
 
-    @Getter
-    private Exception processException;
+    private long elapsedTime = 0;  // In seconds
 
     public static ProcessExecutionDialog createInstance(
             Frame frame, boolean modal, int width, int height,
@@ -92,11 +90,17 @@ public class ProcessExecutionDialog extends JDialog
 
         // Top panel
         JPanel topPanel = new JPanel(new MigLayout(
-            "insets 0", "[grow, fill]", ""));
+            "insets 0", "[grow, fill]", "[] []"));
 
-        JLabel lblMessage = new JLabel("Running process...");
+        JLabel lblRunMessage = new JLabel("Running external process...");
 
-        topPanel.add(lblMessage, "growx");
+        topPanel.add(lblRunMessage, "growx, wrap");
+
+        JLabel lblElapsedTimeTitle = new JLabel("Elapsed time:");
+        lblElapsedTime = new JLabel("-");
+
+        topPanel.add(lblElapsedTimeTitle, "split 2");
+        topPanel.add(lblElapsedTime, "growx");
 
         mainPanel.add(topPanel, "growx, growy, wrap");
 
@@ -132,6 +136,9 @@ public class ProcessExecutionDialog extends JDialog
         }
 
         try {
+            timer = new Timer(1000, this::updateElapsedTime);
+            timer.start();
+
             executionRunnable = new ProcessExecutionRunnable(processBuilder);
             executionRunnable.addListener(this);
 
@@ -147,6 +154,11 @@ public class ProcessExecutionDialog extends JDialog
         }
     }
 
+    private void updateElapsedTime(ActionEvent event) {
+        ++elapsedTime;
+        lblElapsedTime.setText(Utils.formatElapsedTime(elapsedTime));
+    }
+
     private void processBtnCancel(ActionEvent event) {
         // Terminates the external process and interrupts the thread that
         // started it if need be
@@ -158,6 +170,10 @@ public class ProcessExecutionDialog extends JDialog
             executionThread.isAlive() &&
             !executionThread.isInterrupted()) {
             executionThread.interrupt();
+        }
+
+        if ((timer != null) && timer.isRunning()) {
+            timer.stop();
         }
 
         setVisible(false);
@@ -172,15 +188,17 @@ public class ProcessExecutionDialog extends JDialog
     @Override
     public void notifyProcessCreation(ProcessExecutionRunnable source) {
         this.process = source.getProcess();
-        this.processOutputReader = source.getProcessOutputReader();
-        this.processErrorReader = source.getProcessErrorReader();
+        this.processExecutionInfo = source.getProcessExecutionInfo();
+    }
+
+    @Override
+    public void notifyInitialStreamLines(ProcessExecutionRunnable source) {
+        // Nothing to do
     }
 
     @Override
     public void notifyThreadEnd(ProcessExecutionRunnable source) {
-        this.processExitValue = source.getProcessExitValue();
-        this.processException = source.getProcessException();
-
+        // Enqueues the "Cancel" button action
         SwingUtilities.invokeLater(() -> processBtnCancel(null));
     }
 }

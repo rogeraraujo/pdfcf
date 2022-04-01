@@ -3,7 +3,7 @@
   <dontWrapJar>true</dontWrapJar>
   <headerType>gui</headerType>
   <jar>pdfcf.jar</jar>
-  <outfile>C:\Users\roger.araujo\Projects\pdfcf\launch4j\pdfcf.exe</outfile>
+  <outfile>C:\Users\roger.araujo\Projects\pdfcf-git\launch4j\pdfcf.exe</outfile>
   <errTitle>PDF Compression Frontend</errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
@@ -24,12 +24,12 @@
     <runtimeBits>64/32</runtimeBits>
   </jre>
   <versionInfo>
-    <fileVersion>1.0.0.0</fileVersion>
-    <txtFileVersion>1.0.</txtFileVersion>
+    <fileVersion>1.1.0.0</fileVersion>
+    <txtFileVersion>1.1</txtFileVersion>
     <fileDescription>PDF Compression Frontend Launcher</fileDescription>
     <copyright>Copyright (c) 2022, Roger Araújo</copyright>
-    <productVersion>1.0.0.0</productVersion>
-    <txtProductVersion>1.0</txtProductVersion>
+    <productVersion>1.1.0.0</productVersion>
+    <txtProductVersion>1.1</txtProductVersion>
     <productName>PDF Compression Frontend</productName>
     <companyName></companyName>
     <internalName>pdfcf</internalName>

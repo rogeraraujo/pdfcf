@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,8 @@ public class ProcessExecutionRunnable implements Runnable {
 
         void notifyProcessCreation(ProcessExecutionRunnable source);
 
+        void notifyInitialStreamLines(ProcessExecutionRunnable source);
+
         void notifyThreadEnd(ProcessExecutionRunnable source);
     }
 
@@ -47,16 +50,7 @@ public class ProcessExecutionRunnable implements Runnable {
     private Process process;
 
     @Getter
-    private BufferedReader processOutputReader;
-
-    @Getter
-    private BufferedReader processErrorReader;
-
-    @Getter
-    private Integer processExitValue;
-
-    @Getter
-    private Exception processException;
+    private ProcessExecutionInfo processExecutionInfo;
 
     @Getter
     private List<PerListener> listeners = new ArrayList<>();
@@ -89,23 +83,56 @@ public class ProcessExecutionRunnable implements Runnable {
         }
 
         try {
-            // Creates the process and notifies listeners
+            // Creates the process
             process = processBuilder.start();
-            processOutputReader = new BufferedReader(
-                new InputStreamReader(process.getInputStream()));
-            processErrorReader = new BufferedReader(
-                new InputStreamReader(process.getErrorStream()));
+
+            InputStream inputStream = process.getInputStream();
+            BufferedReader inputStreamReader = (inputStream != null) ?
+                new BufferedReader(new InputStreamReader(inputStream)) : null;
+
+            InputStream errorStream = process.getErrorStream();
+            BufferedReader errorStreamReader = (errorStream != null) ?
+                new BufferedReader(new InputStreamReader(errorStream)) : null;
+
+            processExecutionInfo = new ProcessExecutionInfo(process);
+            processExecutionInfo.setInputStreamReader(inputStreamReader);
+            processExecutionInfo.setErrorStreamReader(errorStreamReader);
 
             for (PerListener listener : listeners) {
                 listener.notifyProcessCreation(this);
             }
 
+            // Consumes initial stream lines
+            String line;
+
+            if (inputStreamReader != null) {
+                List<String> lines =
+                    processExecutionInfo.getInitialInputStreamLines();
+
+                while ((line = inputStreamReader.readLine()) != null) {
+                    lines.add(line);
+                }
+            }
+
+            if (errorStreamReader != null) {
+                List<String> lines =
+                    processExecutionInfo.getInitialErrorStreamLines();
+
+                while ((line = errorStreamReader.readLine()) != null) {
+                    lines.add(line);
+                }
+            }
+
+            for (PerListener listener : listeners) {
+                listener.notifyInitialStreamLines(this);
+            }
+
             // Waits for the process to end
             process.waitFor();
 
-            processExitValue = process.exitValue();
+            processExecutionInfo.setExitValue(process.exitValue());
         } catch (Exception ex) {
-            processException = ex;
+            processExecutionInfo.setExecutionException(ex);
         }
 
         // Notifies thread end
