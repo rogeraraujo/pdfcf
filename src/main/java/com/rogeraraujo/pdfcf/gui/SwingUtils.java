@@ -37,8 +37,13 @@ import java.util.Set;
 public class SwingUtils {
     public static final String APP_WINDOW_TITLE = "PDF Compression Frontend";
 
+    public static final String OPTION_PANE_QUESTION_ICON_KEY =
+        "OptionPane.questionIcon";
     public static final String OPTION_PANE_ERROR_ICON_KEY =
         "OptionPane.errorIcon";
+
+    public static final String YES_BUTTON_LABEL = "Yes";
+    public static final String NO_BUTTON_LABEL = "No";
 
     // Private constructor to prevent instantiation
     private SwingUtils() { }
@@ -316,6 +321,27 @@ public class SwingUtils {
             Component parentComponent, String message) {
         JOptionPane.showMessageDialog(parentComponent, message,
             SwingUtils.APP_WINDOW_TITLE, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Asks the user to select Yes or No in a modal dialog box and returns
+     * the answer.
+     *
+     * @param parentComponent Parent component of the dialog box; can be null
+     * @param message Message to display
+     *
+     * @return The user's answer (JOptionPane.YES_OPTION or
+     *         JOptionPane.NO_OPTION)
+     */
+    public static int askYesOrNoOption(
+            Component parentComponent, String message) {
+        Icon icon = UIManager.getIcon(
+            SwingUtils.OPTION_PANE_QUESTION_ICON_KEY);
+        String[] options = { YES_BUTTON_LABEL, NO_BUTTON_LABEL };
+
+        return JOptionPane.showOptionDialog(parentComponent, message,
+            SwingUtils.APP_WINDOW_TITLE, JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE, icon, options, null);
     }
 
     /**

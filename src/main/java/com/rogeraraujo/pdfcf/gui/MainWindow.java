@@ -23,7 +23,6 @@ import com.rogeraraujo.pdfcf.gs.GsUtils;
 import com.rogeraraujo.pdfcf.gs.PdfCompatibilityLevel;
 import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
-import org.apache.commons.validator.routines.UrlValidator;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -502,15 +501,16 @@ public class MainWindow extends JFrame {
             return;
         }
 
-        UrlValidator urlValidator = new UrlValidator(
-            new String[] { "http", "https" });
-
-        if (!urlValidator.isValid(gsUsageHelpUrl)) {
-            SwingUtils.showErrorMessage(this,
+        if (!Utils.isUrlValid(gsUsageHelpUrl)) {
+            String message =
                 "The Ghostscript usage help URL does not seem to be valid:\n\n" +
                 "  " + gsUsageHelpUrl + "\n\n" +
-                "Please specify a valid URL in the configuration file of this program.");
-            return;
+                "Would you like to browse to this URL anyway?";
+
+            if (SwingUtils.askYesOrNoOption(this, message) !=
+                    JOptionPane.YES_OPTION) {
+                return;
+            }
         }
 
         try {

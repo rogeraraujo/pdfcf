@@ -17,6 +17,7 @@
 package com.rogeraraujo.pdfcf;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.validator.routines.UrlValidator;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -195,9 +196,9 @@ public class Utils {
             }
         } finally {
             // Frees resources
-            closeReader(bufReader, true);
-            closeReader(inpStreamReader, true);
-            closeInputStream(inpStream, true);
+            Utils.closeReader(bufReader, true);
+            Utils.closeReader(inpStreamReader, true);
+            Utils.closeInputStream(inpStream, true);
         }
 
         return result.toString();
@@ -472,5 +473,23 @@ public class Utils {
         }
 
         return elementsRead;
+    }
+
+    /**
+     * Returns whether a URL is valid. Valid protocols are HTTP and HTTPS.
+     *
+     * @param url The URL to validate (can be null)
+     *
+     * @return Whether the URL is valid or not
+     */
+    public static boolean isUrlValid(String url) {
+        if (url == null) {
+            return false;
+        }
+
+        UrlValidator urlValidator = new UrlValidator(
+            new String[] { "http", "https" });
+
+        return urlValidator.isValid(url);
     }
 }
