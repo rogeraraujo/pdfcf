@@ -1,4 +1,4 @@
-PDF Compression Frontend v1.1
+PDF Compression Frontend v1.2
 A Ghostscript frontend to compress PDF files
 
 Copyright (c) 2022, Roger Araújo

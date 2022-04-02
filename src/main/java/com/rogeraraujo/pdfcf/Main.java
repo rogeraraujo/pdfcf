@@ -62,10 +62,7 @@ public class Main {
         } catch (Exception ex) {
             getLogger().error("Error reading configuration file:", ex);
         } finally {
-            if (reader != null) {
-                try { reader.close(); }
-                catch (Exception ignored) { }
-            }
+            Utils.closeReader(reader, true);
         }
 
         // Lists available Look-and-Feels
@@ -126,7 +123,7 @@ public class Main {
                 UIManager.getInstalledLookAndFeels();
 
         if (installedLafs.length > 0) {
-            System.out.println("Listing Look-and-Feels...");
+            System.out.println("Listing Swing Look-and-Feels...");
             Arrays.sort(installedLafs, Comparator.comparing(
                 UIManager.LookAndFeelInfo::getClassName));
 

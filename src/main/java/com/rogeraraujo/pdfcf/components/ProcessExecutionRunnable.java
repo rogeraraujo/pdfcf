@@ -16,6 +16,7 @@
 
 package com.rogeraraujo.pdfcf.components;
 
+import com.rogeraraujo.pdfcf.Utils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,7 +45,7 @@ public class ProcessExecutionRunnable implements Runnable {
         void notifyThreadEnd(ProcessExecutionRunnable source);
     }
 
-    private ProcessBuilder processBuilder;
+    private final ProcessBuilder processBuilder;
 
     @Getter
     private Process process;
@@ -53,7 +54,7 @@ public class ProcessExecutionRunnable implements Runnable {
     private ProcessExecutionInfo processExecutionInfo;
 
     @Getter
-    private List<PerListener> listeners = new ArrayList<>();
+    private final List<PerListener> listeners = new ArrayList<>();
 
     public ProcessExecutionRunnable(ProcessBuilder processBuilder) {
         if (processBuilder == null) {
@@ -103,25 +104,19 @@ public class ProcessExecutionRunnable implements Runnable {
             }
 
             // Consumes initial stream lines
-            String line;
+            List<String> inputLines =
+                processExecutionInfo.getInitialInputStreamLines();
 
-            if (inputStreamReader != null) {
-                List<String> lines =
-                    processExecutionInfo.getInitialInputStreamLines();
+            Utils.consumeLines(inputStreamReader,
+                new Utils.AlwaysTrueIntegerBiFunction<>(
+                    (line, lineNum) -> inputLines.add(line)));
 
-                while ((line = inputStreamReader.readLine()) != null) {
-                    lines.add(line);
-                }
-            }
+            List<String> errorLines =
+                processExecutionInfo.getInitialErrorStreamLines();
 
-            if (errorStreamReader != null) {
-                List<String> lines =
-                    processExecutionInfo.getInitialErrorStreamLines();
-
-                while ((line = errorStreamReader.readLine()) != null) {
-                    lines.add(line);
-                }
-            }
+            Utils.consumeLines(errorStreamReader,
+                new Utils.AlwaysTrueIntegerBiFunction<>(
+                    (line, lineNum) -> errorLines.add(line)));
 
             for (PerListener listener : listeners) {
                 listener.notifyInitialStreamLines(this);
@@ -138,17 +133,6 @@ public class ProcessExecutionRunnable implements Runnable {
         // Notifies thread end
         for (PerListener listener : listeners) {
             listener.notifyThreadEnd(this);
-        }
-    }
-
-    /**
-     * Terminates the external process started by this thread. If there is
-     * no process to terminate, or if a process exists but it has already
-     * finished executing, no action is taken.
-     */
-    public void destroyProcess() {
-        if ((process != null) && process.isAlive()) {
-            process.destroy();
         }
     }
 

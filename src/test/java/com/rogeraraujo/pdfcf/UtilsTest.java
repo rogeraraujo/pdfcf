@@ -18,12 +18,16 @@ package com.rogeraraujo.pdfcf;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -70,7 +74,7 @@ class UtilsTest {
         assertEquals(Utils.readTextFromResource(
             "text/two-lines.txt", charset), "\nLine 2");
         assertEquals(Utils.readTextFromResource(
-            "text/three-lines.txt", charset), "\n\nLine 3");
+            "text/three-lines.txt", charset), "Line 1\n\nLine 3");
         assertEquals(Utils.readTextFromResource(
                 "text/last-line-empty.txt", charset),
             "The next (and last) line is empty\n");
@@ -206,5 +210,200 @@ class UtilsTest {
         assertEquals(Utils.formatElapsedTime(-(86400 + 86399)), String.format(
             "%d%s%d%s%d%s%d%s", -1, Utils.DAYS_SUFFIX, 23, Utils.HOURS_SUFFIX, 59,
             Utils.MINUTES_SUFFIX, 59, Utils.SECONDS_SUFFIX));
+    }
+
+    @Test
+    void consumeLinesTest() throws IOException {
+        // Test 1
+        StringBuilder builder = new StringBuilder();
+
+        int linesRead = Utils.consumeLines(null,
+            new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) -> {
+                if (lineNum > 1) {
+                    builder.append('\n');
+                }
+
+                builder.append(line);
+            }));
+
+        assertEquals(builder.toString(), "");
+        assertEquals(linesRead, 0);
+
+        // Test 2
+        InputStream inpStream = null;
+        BufferedReader bufReader = null;
+
+        builder.delete(0, builder.length());
+
+        try {
+            inpStream = Utils.class.getClassLoader()
+                .getResourceAsStream("text/two-lines.txt");
+
+            assertNotNull(inpStream);
+
+            bufReader = new BufferedReader(new InputStreamReader(inpStream));
+            linesRead = Utils.consumeLines(bufReader,
+                new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) -> {
+                    if (lineNum > 1) {
+                        builder.append('\n');
+                    }
+
+                    builder.append(line);
+                }));
+        }
+        finally {
+            Utils.closeReader(bufReader, false);
+            Utils.closeInputStream(inpStream, false);
+        }
+
+        assertEquals(builder.toString(), "\nLine 2");
+        assertEquals(linesRead, 2);
+
+        // Test 3
+        inpStream = null;
+        bufReader = null;
+
+        builder.delete(0, builder.length());
+
+        try {
+            inpStream = Utils.class.getClassLoader()
+                .getResourceAsStream("text/three-lines.txt");
+
+            assertNotNull(inpStream);
+
+            bufReader = new BufferedReader(new InputStreamReader(inpStream));
+            linesRead = Utils.consumeLines(bufReader,
+                new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) -> {
+                    // Skips even line numbers
+                    if (lineNum % 2 == 0) {
+                        return;
+                    }
+
+                    if (lineNum > 1) {
+                        builder.append('\n');
+                    }
+
+                    builder.append(line);
+                }));
+        }
+        finally {
+            Utils.closeReader(bufReader, false);
+            Utils.closeInputStream(inpStream, false);
+        }
+
+        assertEquals(builder.toString(), "Line 1\nLine 3");
+        assertEquals(linesRead, 3);
+
+        // Test 4
+        inpStream = null;
+        bufReader = null;
+
+        builder.delete(0, builder.length());
+
+        try {
+            inpStream = Utils.class.getClassLoader()
+                .getResourceAsStream("text/three-lines.txt");
+
+            assertNotNull(inpStream);
+
+            bufReader = new BufferedReader(new InputStreamReader(inpStream));
+            linesRead = Utils.consumeLines(bufReader, (line, lineNum) -> {
+                // Keeps only the first line
+                if (lineNum >= 2) {
+                    return Boolean.FALSE;
+                }
+
+                if (lineNum > 1) {
+                    builder.append('\n');
+                }
+
+                builder.append(line);
+
+                return Boolean.TRUE;
+            });
+        }
+        finally {
+            Utils.closeReader(bufReader, false);
+            Utils.closeInputStream(inpStream, false);
+        }
+
+        assertEquals(builder.toString(), "Line 1");
+        assertEquals(linesRead, 2);
+    }
+
+    @Test
+    void consumeElementsTest() {
+        // Test 1
+        StringBuilder builder = new StringBuilder();
+
+        int elementsRead = Utils.consumeElements(null,
+            new Utils.AlwaysTrueIntegerBiFunction<>((element, elementNum) -> {
+                if (elementNum > 1) {
+                    builder.append('\n');
+                }
+
+                builder.append(element);
+            }));
+
+        assertEquals(builder.toString(), "");
+        assertEquals(elementsRead, 0);
+
+        // Test 2
+        List<Integer> list = Arrays.asList(10, 20, 30, 40);
+
+        builder.delete(0, builder.length());
+
+        elementsRead = Utils.consumeElements(list,
+            new Utils.AlwaysTrueIntegerBiFunction<>((element, elementNum) -> {
+                if (elementNum > 1) {
+                    builder.append('\n');
+                }
+
+                builder.append(element);
+            }));
+
+        assertEquals(builder.toString(), "10\n20\n30\n40");
+        assertEquals(elementsRead, 4);
+
+        // Test 3
+        builder.delete(0, builder.length());
+
+        elementsRead = Utils.consumeElements(list,
+            new Utils.AlwaysTrueIntegerBiFunction<>((element, elementNum) -> {
+                // Skips even element numbers
+                if (elementNum % 2 == 0) {
+                    return;
+                }
+
+                if (elementNum > 1) {
+                    builder.append('\n');
+                }
+
+                builder.append(element);
+            }));
+
+        assertEquals(builder.toString(), "10\n30");
+        assertEquals(elementsRead, 4);
+
+        // Test 4
+        builder.delete(0, builder.length());
+
+        elementsRead = Utils.consumeElements(list, (element, elementNum) -> {
+            // Keeps only the first element
+            if (elementNum >= 2) {
+                return Boolean.FALSE;
+            }
+
+            if (elementNum > 1) {
+                builder.append('\n');
+            }
+
+            builder.append(element);
+
+            return Boolean.TRUE;
+        });
+
+        assertEquals(builder.toString(), "10");
+        assertEquals(elementsRead, 2);
     }
 }

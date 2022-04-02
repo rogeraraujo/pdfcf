@@ -60,12 +60,8 @@ public class MainWindow extends JFrame {
 
     private JTextField jtfGsExecutablePath;
 
-    private ComboBoxModel<ComboBoxItem<ConversionQuality>>
-        conversionQualityModel;
     private JComboBox<ComboBoxItem<ConversionQuality>> cboConversionQuality;
 
-    private DefaultComboBoxModel<ComboBoxItem<PdfCompatibilityLevel>>
-        pdfCompatibilityLevelModel;
     private JComboBox<ComboBoxItem<PdfCompatibilityLevel>>
         cboPdfCompatibilityLevel;
 
@@ -76,7 +72,6 @@ public class MainWindow extends JFrame {
     private JTextField jtfOutputFile;
 
     private JTextArea jtaCompressionLog;
-    private JScrollPane scpCompressionLog;
 
     private String gsUsageHelpUrl = "";
 
@@ -176,19 +171,16 @@ public class MainWindow extends JFrame {
         ComboBoxItem.setSelectedItem(cboConversionQuality,
             ConversionQuality.getInstance(config.getProperty(
                 "conversion-quality", DEFAULT_CONVERSION_QUALITY_ID).trim()));
-
-        ComboBoxItem.setSelectedItem(cboPdfCompatibilityLevel, config.getProperty(
-            "pdf-compatibility-level", DEFAULT_PDF_COMPATIBILITY_LEVEL).trim());
-
+        ComboBoxItem.setSelectedItem(cboPdfCompatibilityLevel,
+            PdfCompatibilityLevel.getInstance(config.getProperty(
+                "pdf-compatibility-level", DEFAULT_PDF_COMPATIBILITY_LEVEL).trim()));
         jtfAdditionalGsParameters.setText(config.getProperty(
             "ghostscript-additional-parameters", DEFAULT_GS_ADDITIONAL_PARAMETERS));
 
         gsUsageHelpUrl = config.getProperty(
             "ghostscript-usage-help-url", GsUtils.DEFAULT_GS_USAGE_HELP_URL);
-
         defaultInputFileDirPath = config.getProperty(
             "default-input-file-folder", "");
-
         defaultOutputFileDirPath = config.getProperty(
             "default-output-file-folder", "");
     }
@@ -222,7 +214,8 @@ public class MainWindow extends JFrame {
         // Conversion quality
         result.add(new JLabel("Conversion Quality"));
 
-        conversionQualityModel = createConversionQualityModel();
+        ComboBoxModel<ComboBoxItem<ConversionQuality>>
+            conversionQualityModel = createConversionQualityModel();
         cboConversionQuality = SwingUtils.createComboBox(
             conversionQualityModel,
             new CustomListCellRenderer.AlternateRowColorTransformer(null), null);
@@ -232,7 +225,8 @@ public class MainWindow extends JFrame {
         // PDF compatibility level
         result.add(new JLabel("PDF Compatibility Level"));
 
-        pdfCompatibilityLevelModel = createPdfCompatibilityLevelModel();
+        DefaultComboBoxModel<ComboBoxItem<PdfCompatibilityLevel>>
+            pdfCompatibilityLevelModel = createPdfCompatibilityLevelModel();
         cboPdfCompatibilityLevel = SwingUtils.createComboBox(
             pdfCompatibilityLevelModel,
             new CustomListCellRenderer.AlternateRowColorTransformer(null), null);
@@ -365,7 +359,7 @@ public class MainWindow extends JFrame {
 
         jtaCompressionLog = SwingUtils.createTextArea(
             new LimitedDocument(100000), "", 5, 10, false, true, true, true);
-        scpCompressionLog = new JScrollPane(jtaCompressionLog);
+        JScrollPane scpCompressionLog = new JScrollPane(jtaCompressionLog);
 
         logPanel.add(scpCompressionLog, "growx, growy");
 
@@ -839,29 +833,16 @@ public class MainWindow extends JFrame {
             showExceptionDialog("Error running Ghostscript", ex);
         } finally {
             // Processes input stream
-            boolean emittedLines = false;
+            boolean emittedLines = Utils.consumeElements(initialInputStreamLines,
+                new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) ->
+                    jtaCompressionLog.append(line + "\n"))) > 0;
 
-            if ((initialInputStreamLines != null) &&
-                (initialInputStreamLines.size() > 0)) {
-                emittedLines = true;
-
-                for (String line : initialInputStreamLines) {
-                    jtaCompressionLog.append(line + "\n");
-                }
-            }
-
-            if (inputStreamReader != null) {
-                try {
-                    String line;
-
-                    while ((line = inputStreamReader.readLine()) != null) {
-                        jtaCompressionLog.append(line + "\n");
-                        emittedLines = true;
-                    }
-                } catch (Exception ex) {
-                    showExceptionDialog(
-                        "Error reading Ghostscript output stream", ex);
-                }
+            try {
+                emittedLines |= Utils.consumeLines(inputStreamReader,
+                    new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) ->
+                        jtaCompressionLog.append(line + "\n"))) > 0;
+            } catch (Exception ex) {
+                showExceptionDialog("Error reading Ghostscript input stream", ex);
             }
 
             if (emittedLines) {
@@ -869,29 +850,16 @@ public class MainWindow extends JFrame {
             }
 
             // Processes error stream
-            emittedLines = false;
+            emittedLines = Utils.consumeElements(initialErrorStreamLines,
+                new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) ->
+                    jtaCompressionLog.append(line + "\n"))) > 0;
 
-            if ((initialErrorStreamLines != null) &&
-                (initialErrorStreamLines.size() > 0)) {
-                emittedLines = true;
-
-                for (String line : initialErrorStreamLines) {
-                    jtaCompressionLog.append(line + "\n");
-                }
-            }
-
-            if (errorStreamReader != null) {
-                try {
-                    String line;
-
-                    while ((line = errorStreamReader.readLine()) != null) {
-                        jtaCompressionLog.append(line + "\n");
-                        emittedLines = true;
-                    }
-                } catch (Exception ex) {
-                    showExceptionDialog(
-                        "Error reading Ghostscript error stream", ex);
-                }
+            try {
+                emittedLines |= Utils.consumeLines(errorStreamReader,
+                    new Utils.AlwaysTrueIntegerBiFunction<>((line, lineNum) ->
+                        jtaCompressionLog.append(line + "\n"))) > 0;
+            } catch (Exception ex) {
+                showExceptionDialog("Error reading Ghostscript error stream", ex);
             }
 
             if (emittedLines) {
@@ -903,21 +871,14 @@ public class MainWindow extends JFrame {
                 executionDlg.dispose();
             }
 
-            if (inputStreamReader != null) {
-                try { inputStreamReader.close(); }
-                catch (Exception ignored) { }
-            }
-
-            if (errorStreamReader != null) {
-                try { errorStreamReader.close(); }
-                catch (Exception ignored) { }
-            }
+            Utils.closeReader(inputStreamReader, true);
+            Utils.closeReader(errorStreamReader, true);
         }
 
         // Processes exit value
         jtaCompressionLog.append("Ghostscript exit value: " +
             ((exitValue != null) ? exitValue.toString() : "(unavailable)") +
-            "\n");
+            '\n');
 
         if (exitValue == null) {
             return;

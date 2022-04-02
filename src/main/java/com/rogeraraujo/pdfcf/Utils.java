@@ -16,16 +16,18 @@
 
 package com.rogeraraujo.pdfcf;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.*;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 /**
  * Utility class to provide miscellaneous methods.
  */
+@Slf4j
 public class Utils {
     // Private constructor to prevent instantiation
     private Utils() { }
@@ -89,6 +91,61 @@ public class Utils {
     }
 
     /**
+     * Attempts to close an InputStream instance. If [ignoreExceptions] is
+     * false and an exception gets thrown, this method rethrows the exception
+     * by wrapping it inside a RuntimeException instance.
+     *
+     * @param inpStream InputStream instance to close
+     * @param ignoreExceptions Flag indicating whether exceptions should be
+     *                         ignored
+     */
+    public static void closeInputStream(
+            InputStream inpStream, boolean ignoreExceptions)
+            throws RuntimeException {
+        if (inpStream == null) {
+            return;
+        }
+
+        try {
+            inpStream.close();
+        } catch (Exception ex) {
+            if (ignoreExceptions) {
+                log.debug("Error closing InputStream:", ex);
+            }
+            else {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    /**
+     * Attempts to close a Reader instance. If [ignoreExceptions] is false
+     * and an exception gets thrown, this method rethrows the exception by
+     * wrapping it inside a RuntimeException instance.
+     *
+     * @param reader Reader instance to close
+     * @param ignoreExceptions Flag indicating whether exceptions should be
+     *                         ignored
+     */
+    public static void closeReader(Reader reader, boolean ignoreExceptions)
+            throws RuntimeException {
+        if (reader == null) {
+            return;
+        }
+
+        try {
+            reader.close();
+        } catch (Exception ex) {
+            if (ignoreExceptions) {
+                log.debug("Error closing Reader:", ex);
+            }
+            else {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    /**
      * Reads and returns the complete contents of a plain text resource file.
      *
      * @param resourceName Name of the resource file; can be null
@@ -125,33 +182,22 @@ public class Utils {
             bufReader = new BufferedReader(inpStreamReader);
 
             String lineStr = bufReader.readLine();
-            int lineNum = 0;
+            int linesRead = 1;
 
             while (lineStr != null) {
-                if (lineNum > 0) {
+                if (linesRead > 1) {
                     result.append('\n');
                 }
 
-                ++lineNum;
                 result.append(lineStr);
                 lineStr = bufReader.readLine();
+                ++linesRead;
             }
         } finally {
             // Frees resources
-            if (bufReader != null) {
-                try { bufReader.close(); }
-                catch (Exception ignored) { }
-            }
-
-            if (inpStreamReader != null) {
-                try { inpStreamReader.close(); }
-                catch (Exception ignored) { }
-            }
-
-            if (inpStream != null) {
-                try { inpStream.close(); }
-                catch (Exception ignored) { }
-            }
+            closeReader(bufReader, true);
+            closeReader(inpStreamReader, true);
+            closeInputStream(inpStream, true);
         }
 
         return result.toString();
@@ -328,5 +374,103 @@ public class Utils {
         }
 
         return result.toString();
+    }
+
+    /**
+     * Represents a boolean function that always returns true and accepts two
+     * arguments: a parameterized type and an integer.
+     *
+     * @param <T> The first parameterized type used as input to the function
+     *            (the second is the Integer type)
+     */
+    public static class AlwaysTrueIntegerBiFunction<T>
+            implements BiFunction<T, Integer, Boolean> {
+        private final BiConsumer<T, Integer> consumer;
+
+        public AlwaysTrueIntegerBiFunction(BiConsumer<T, Integer> consumer) {
+            if (consumer == null) {
+                throw new IllegalArgumentException("Consumer must not be null");
+            }
+
+            this.consumer = consumer;
+        }
+
+        public Boolean apply(T t, Integer integer) {
+            consumer.accept(t, integer);
+            return Boolean.TRUE;
+        }
+    }
+
+    /**
+     * Reads a BufferedReader instance line-by-line and passes each line read
+     * to a consumer function; at the end, returns the number of lines read.
+     * When the consumer function gets called, it receives an individual line
+     * and the number of lines read up to that point. If the consumer function
+     * returns false after processing a line, no further lines get processed.
+     *
+     * @param reader BufferedReader instance to use as a source of lines (can
+     *               be null)
+     * @param consumerFunction Consumer function to process each individual
+     *                         line
+     *
+     * @return The number of lines processed
+     *
+     * @throws IOException If an I/O error occurs
+     */
+    public static int consumeLines(BufferedReader reader,
+            BiFunction<String, Integer, Boolean> consumerFunction)
+            throws IOException {
+        if (reader == null) {
+            return 0;
+        }
+
+        int linesRead = 0;
+        String lineStr;
+
+        while ((lineStr = reader.readLine()) != null) {
+            ++linesRead;
+
+            if (!consumerFunction.apply(lineStr, linesRead)) {
+                return linesRead;
+            }
+        }
+
+        return linesRead;
+    }
+
+    /**
+     * Traverses an Iterable instance element-by-element and passes each
+     * element read to a consumer function; at the end, returns the number of
+     * elements read. When the consumer function gets called, it receives an
+     * individual element and the number of elements read up to that point.
+     * If the consumer function returns false after processing an element, no
+     * further elements get processed.
+     *
+     * @param iterable Iterable instance to use as a source of elements (can
+     *                 be null)
+     * @param consumerFunction Consumer function to process each individual
+     *                         element
+     * @param <T> The first parameterized type used as input to the consumer
+     *            function (the second is the Integer type)
+     *
+     * @return The number of elements processed
+     */
+    public static <T> int consumeElements(Iterable<T> iterable,
+            BiFunction<T, Integer, Boolean> consumerFunction) {
+        if (iterable == null) {
+            return 0;
+        }
+
+        int elementsRead = 0;
+
+        for (T element : iterable) {
+            ++elementsRead;
+
+            if (!consumerFunction.apply(element, elementsRead)) {
+                return elementsRead;
+            }
+        }
+
+        return elementsRead;
     }
 }

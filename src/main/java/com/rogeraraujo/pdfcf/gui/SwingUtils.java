@@ -26,8 +26,6 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,14 +37,8 @@ import java.util.Set;
 public class SwingUtils {
     public static final String APP_WINDOW_TITLE = "PDF Compression Frontend";
 
-    public static final String OPTION_PANE_QUESTION_ICON_KEY =
-        "OptionPane.questionIcon";
     public static final String OPTION_PANE_ERROR_ICON_KEY =
         "OptionPane.errorIcon";
-    public static final String OPTION_PANE_INFORMATION_ICON_KEY =
-        "OptionPane.informationIcon";
-    public static final String OPTION_PANE_WARNING_ICON_KEY =
-        "OptionPane.warningIcon";
 
     // Private constructor to prevent instantiation
     private SwingUtils() { }
@@ -291,47 +283,6 @@ public class SwingUtils {
     }
 
     /**
-     * Creates a JCheckBox instance.
-     *
-     * @param text Text to apply to the created instance; can be null
-     * @param selected Flag indicating whether the created instance should be
-     *                 in the selected state
-     * @param itemListener An ItemListener instance to add to the created check
-     *                     box; can be null
-     *
-     * @return A newly-created JCheckBox instance
-     */
-    public static JCheckBox createCheckBox(
-            String text, boolean selected, ItemListener itemListener) {
-        JCheckBox result = new JCheckBox();
-
-        if (text != null) {
-            result.setText(text);
-        }
-
-        result.setSelected(selected);
-
-        if (itemListener != null) {
-            result.addItemListener(itemListener);
-        }
-
-        return result;
-    }
-
-    /**
-     * Returns the integer code of the state change that matches the boolean
-     * selected state of a check box, as defined in the ItemEvent class.
-     *
-     * @param isSelected Flag indicating whether the check box is in the
-     *                   selected state
-     *
-     * @return The integer code of the state change
-     */
-    public static int getCheckBoxStateChange(boolean isSelected) {
-        return isSelected ? ItemEvent.SELECTED : ItemEvent.DESELECTED;
-    }
-
-    /**
      * Copies text to the clipboard.
      *
      * @param text The text to copy
@@ -353,18 +304,6 @@ public class SwingUtils {
             Component parentComponent, String message) {
         JOptionPane.showMessageDialog(parentComponent, message,
             SwingUtils.APP_WINDOW_TITLE, JOptionPane.ERROR_MESSAGE);
-    }
-
-    /**
-     * Displays a warning message in a modal dialog box.
-     *
-     * @param parentComponent Parent component of the dialog box; can be null
-     * @param message Warning message to display
-     */
-    public static void showWarningMessage(
-            Component parentComponent, String message) {
-        JOptionPane.showMessageDialog(parentComponent, message,
-            SwingUtils.APP_WINDOW_TITLE, JOptionPane.WARNING_MESSAGE);
     }
 
     /**
